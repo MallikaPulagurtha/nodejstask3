@@ -1,103 +1,86 @@
 const express = require("express");
 const cors = require("cors");
-let DB = "studentMentor";
-
-const mongodb = require("mongodb");
-const URL = "mongodb://localhost:27017";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-let students = [];
-let mentors = [];
+app.get("/", (req, res) => {
+    res.send("<h1>Welcome to Node</h1>");
+})
 
-// API to create student
-app.post("/student", async (req, res) => {
-    let connection = await mongodb.connect(URL);
-    let db = connection.db(DB);
-    await db.collection("student").insertOne(req.body);
-    await db.collection("mentor").updateOne({ _id: mongodb.ObjectID(req.params.id) }, { $set: req.body });
-    await connection.close();
+let students = [];
+
+//VIEW ALL STUDENT DETAILS
+app.get("/students", (req, res) => {
+    res.send(students);
+});
+
+//CREATE
+app.post("/student", (req, res) => {
+    // console.log(req.body);
+    req.body.id = students.length + 1;
+    students.push(req.body);
     res.json({
         message: "Student Created"
     })
 });
 
-// API to create mentor
-app.post("/mentor", async (req, res) => {
-    let connection = await mongodb.connect(URL);
-    let db = connection.db(DB);
-    await db.collection("mentor").insertOne(req.body);
-    await connection.close();
+//READ
+app.get("/student/:id", (req, res) => {
+    // console.log(req.params.id);
+    let studentId = req.params.id;
+    let student = students.find((obj) => obj.id == studentId);
+    if (student)
+        res.json(student)
+    else
+        res.json({
+            message: "Student not found"
+        })
+
+})
+
+//UPDATE
+app.put("/student/:id", function (req, res) {
+    let studentId = req.params.id;
+    let updateData = req.body;
+
+    // Find the index value of the student id 1
+    let studentindex = students.findIndex((obj) => obj.id == studentId)
+    let studentData = students[studentindex]
+    // console.log(studentindex)
+
+    if (studentData) {
+        // Update the particular key
+        Object.keys(updateData).forEach((keyItem) => {
+            studentData[keyItem] = updateData[keyItem]
+        })
+
+        students[studentindex] = studentData;
+
+        res.json({
+            message: "studentUpdate Success"
+        })
+    } else {
+        res.json({
+            message: "No User Found"
+        })
+    }
+})
+
+//DELETE
+app.delete("/student/:id", (req, res) => {
+    let studentId = req.params.id;
+    let student = students.findIndex((obj) => obj.id == studentId);
+    console.log(student);
+    students.splice(student, 1);
     res.json({
-        message: "mentor Created"
+        message: "Student Deleted"
     })
 });
 
-//Assign student to mentor
-app.put("/mentor/:id", async (req, res) => {
-    try {
-        let connection = await mongodb.connect(URL);
-        let db = connection.db(DB);
-        await db.collection("mentor").updateOne({ _id: mongodb.ObjectID(req.params.id) }, { $push: req.body });
-        connection.close();
-        res.send({ message: "students added" });
-    } catch (error) {
-        console.log(error);
-    }
-})
 
-//Assign mentor to Student
-app.put("/student/:id", async (req, res) => {
-    try {
-        let connection = await mongodb.connect(URL);
-        let db = connection.db(DB);
-        await db.collection("student").updateOne({ _id: mongodb.ObjectID(req.params.id) }, { $set: req.body });
-        connection.close();
-        res.send({ message: "students added" });
-    } catch (error) {
-        console.log(error);
-    }
-})
+app.use(cors());
+app.use(express.json());
 
-//Show all students of particular mentor
-app.get("/mentor/:id", async (req, res) => {
-    try {
-        let connection = await mongodb.connect(URL);
-        let db = connection.db(DB);
-        let ment = await db.collection("mentor").findOne({ _id: mongodb.ObjectID(req.params.id) }, { $set: req.body });
-        await connection.close();
-        res.json(ment.students);
-    } catch (error) {
-        console.log(error);
-    }
-})
-
-//displaying all the students
-app.get("/student", async (req, res) => {
-    try {
-        let connection = await mongodb.connect(URL);
-        let db = connection.db(DB);
-        let stud = await db.collection("student").find().toArray();
-        await connection.close();
-        res.json(stud);
-    } catch (error) {
-        console.log(error);
-    }
-})
-
-//displaying all the mentors
-app.get("/mentor", async (req, res) => {
-    try {
-        let connection = await mongodb.connect(URL);
-        let db = connection.db(DB);
-        let ment = await db.collection("mentor").find().toArray();
-        await connection.close();
-        res.json(ment);
-    } catch (error) {
-        console.log(error);
-    }
-})
-
-app.listen(3002);
+app.listen(8000);
